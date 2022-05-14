@@ -1,9 +1,21 @@
-FROM rust:1.40 as builder
-WORKDIR /usr/src/myapp
-COPY . .
-RUN cargo install --path .
+# Build Stage
+FROM --platform=linux/amd64 rustlang/rust:nightly as builder
 
-FROM debian:buster-slim
-RUN apt-get update && apt-get -y install ca-certificates libssl-dev && rm -rf /var/lib/apt/lists/*
-COPY --from=builder /usr/local/cargo/bin/matrix-ircd /usr/local/bin/matrix-ircd
-ENTRYPOINT ["matrix-ircd"]
+ENV DEBIAN_FRONTEND=noninteractive
+## Install build dependencies.
+RUN apt-get update 
+RUN apt-get install -y cmake clang
+RUN cargo install cargo-fuzz
+
+## Add source code to the build stage.
+ADD . /matrix-ircd/
+
+## TODO: ADD YOUR BUILD INSTRUCTIONS HERE.
+
+WORKDIR /matrix-ircd/fuzz/
+RUN cargo fuzz build
+
+FROM --platform=linux/amd64 rustlang/rust:nightly
+
+## TODO: Change <Path in Builder Stage>
+COPY --from=builder /matrix-ircd/fuzz/target/x86_64-unknown-linux-gnu/release/parse_irc /

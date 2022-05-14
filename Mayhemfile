@@ -1,0 +1,6 @@
+project: matrix-ircd
+target: parse-irc
+duration: 90
+
+cmds:
+    - cmd: /parse_irc
